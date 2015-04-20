@@ -9214,7 +9214,7 @@ HubPort.constructorParams = {
 /**
  * @alias module:core.HubPort.events
  *
- * @extends module:core/abstracts.MediaElement.events
+ * @extend module:core/abstracts.MediaElement.events
  */
 HubPort.events = MediaElement.events;
 
@@ -9355,7 +9355,7 @@ MediaPipeline.constructorParams = {};
 /**
  * @alias module:core.MediaPipeline.events
  *
- * @extends module:core/abstracts.MediaObject.events
+ * @extend module:core/abstracts.MediaObject.events
  */
 MediaPipeline.events = MediaObject.events;
 
@@ -9390,8 +9390,6 @@ var inherits = require('inherits');
 var kurentoClient = require('kurento-client');
 
 var ChecktypeError = kurentoClient.checkType.ChecktypeError;
-
-var Transaction = kurentoClient.TransactionsManager.Transaction;
 
 var SdpEndpoint = require('./SdpEndpoint');
 
@@ -9471,7 +9469,7 @@ BaseRtpEndpoint.constructorParams = {};
 /**
  * @alias module:core/abstracts.BaseRtpEndpoint.events
  *
- * @extends module:core/abstracts.SdpEndpoint.events
+ * @extend module:core/abstracts.SdpEndpoint.events
  */
 BaseRtpEndpoint.events = SdpEndpoint.events;
 
@@ -9536,7 +9534,7 @@ Endpoint.constructorParams = {};
 /**
  * @alias module:core/abstracts.Endpoint.events
  *
- * @extends module:core/abstracts.MediaElement.events
+ * @extend module:core/abstracts.MediaElement.events
  */
 Endpoint.events = MediaElement.events;
 
@@ -9596,7 +9594,7 @@ Filter.constructorParams = {};
 /**
  * @alias module:core/abstracts.Filter.events
  *
- * @extends module:core/abstracts.MediaElement.events
+ * @extend module:core/abstracts.MediaElement.events
  */
 Filter.events = MediaElement.events;
 
@@ -9698,7 +9696,7 @@ Hub.constructorParams = {};
 /**
  * @alias module:core/abstracts.Hub.events
  *
- * @extends module:core/abstracts.MediaObject.events
+ * @extend module:core/abstracts.MediaObject.events
  */
 Hub.events = MediaObject.events;
 
@@ -10066,7 +10064,7 @@ MediaElement.constructorParams = {};
 /**
  * @alias module:core/abstracts.MediaElement.events
  *
- * @extends module:core/abstracts.MediaObject.events
+ * @extend module:core/abstracts.MediaObject.events
  */
 MediaElement.events = MediaObject.events;
 
@@ -10138,19 +10136,9 @@ function MediaObject(){
    */
   this.once('_id', function(error, id)
   {
-    if(error)
-    {
-      this._createError = error;
+    if(error) return Object.defineProperty(this, 'id', {value: null});
 
-      return Object.defineProperty(this, 'id', {value: null});
-    }
-
-    Object.defineProperty(this, 'id',
-    {
-      configurable: true,
-      enumerable: true,
-      value: id
-    });
+    Object.defineProperty(this, 'id', {value: id, enumerable: true});
   })
 
   //
@@ -10315,11 +10303,6 @@ MediaObject.prototype.getParent = function(callback){
  */
 
 
-function throwRpcNotReady()
-{
-  throw new Error('RPC result is not ready, use .then() method instead');
-};
-
 /**
  * Send a command to a media object
  *
@@ -10342,62 +10325,33 @@ MediaObject.prototype._invoke = function(transaction, method, params, callback){
     params = undefined;
   };
 
-  var promise;
-  var error = this._createError;
-  if(error)
+  var promise = new Promise(function(resolve, reject)
   {
-    promise = Promise.reject(error)
-
-    Object.defineProperty(promise, 'value', {get: function(){throw error}});
-  }
-  else
-  {
-    promise = new Promise(function(resolve, reject)
+    // Generate request parameters
+    var params2 =
     {
-      // Generate request parameters
-      var params2 =
-      {
-        object: self,
-        operation: method
-      };
+      object: self,
+      operation: method
+    };
 
-      if(params)
-        params2.operationParams = params;
+    if(params)
+      params2.operationParams = params;
 
-      function callback(error, result)
-      {
-        delete promise.value;
-
-        if(error)
-        {
-          Object.defineProperty(promise, 'value', {get: function(){throw error}});
-
-          return reject(error);
-        }
-
-        var value = result.value;
-        if(value === undefined)
-          value = self
-        else
-          Object.defineProperty(promise, 'value', {value: value});
-
-        resolve(value);
-      }
-
-      // Do request
-      self.emit('_rpc', transaction, 'invoke', params2, callback);
-    });
-
-    Object.defineProperty(promise, 'value',
+    function callback(error, result)
     {
-      configurable: true,
-      get: throwRpcNotReady
-    });
-  }
+      if(error) return reject(error);
 
-  promise = promiseCallback(promise, callback);
+      var value = result.value;
+      if(value === undefined) value = self;
 
-  return promise
+      resolve(value);
+    }
+
+    // Do request
+    self.emit('_rpc', transaction, 'invoke', params2, callback);
+  });
+
+  return promiseCallback(promise, callback);
 };
 /**
  * @callback core/abstract.MediaObject~invokeCallback
@@ -10422,44 +10376,27 @@ MediaObject.prototype.release = function(callback){
 
   var self = this;
 
-  var promise;
-  var error = this._createError;
-  if(error)
-    promise = Promise.reject(error)
-  else
-    promise = new Promise(function(resolve, reject)
+  var promise = new Promise(function(resolve, reject)
+  {
+    var params =
     {
-      var params =
-      {
-        object: self
-      };
+      object: self
+    };
 
-      function callback(error)
-      {
-        if(error) return reject(error);
+    function callback(error)
+    {
+      if(error) return reject(error);
 
-        // Object was sucessfully released on the server,
-        // remove it from cache and all its events
-        self.emit('release');
-        Object.keys(self._events).forEach(function(event)
-        {
-          if(event[0] == '_'
-          || event == 'newListener'
-          || event == 'removeListener')
-            return;
+      self.emit('release');
 
-          self.removeAllListeners(event);
-        })
+      // Remove events on the object and remove object from cache
+      self.removeAllListeners();
 
-        // Set id as null since the object don't exists anymore on the server so
-        // subsequent operations fail inmediatly
-        Object.defineProperty(self, 'id', {value: null});
+      resolve();
+    }
 
-        resolve();
-      }
-
-      self.emit('_rpc', transaction, 'release', params, callback);
-    });
+    self.emit('_rpc', transaction, 'release', params, callback);
+  });
 
   return promiseCallback(promise, callback);
 };
@@ -10497,29 +10434,25 @@ MediaObject.prototype.then = function(onFulfilled, onRejected){
     };
     function failure(error)
     {
+      var result = new Error(error);
+
       if(onRejected)
         try
         {
-          error = onRejected.call(self, error);
+          result = onRejected.call(self, result);
         }
         catch(exception)
         {
           return reject(exception);
         }
       else
-        console.trace('Uncaugh exception', error)
+        console.trace('Uncaugh exception', result)
 
-      reject(error);
+      reject(result);
     };
 
     if(self.id === null)
-    {
-      var error = new Error('MediaObject not found in server');
-          error.code = 40101;
-          error.object = self;
-
-      failure(error)
-    }
+      failure()
     else if(self.id !== undefined)
       success(self)
     else
@@ -10531,11 +10464,6 @@ MediaObject.prototype.then = function(onFulfilled, onRejected){
       })
   })
 }
-
-Object.defineProperty(MediaObject.prototype, 'commited',
-{
-  get: function(){return this.id !== undefined;}
-});
 
 /**
  * @alias module:core/abstracts.MediaObject.constructorParams
@@ -10779,7 +10707,7 @@ SdpEndpoint.constructorParams = {};
 /**
  * @alias module:core/abstracts.SdpEndpoint.events
  *
- * @extends module:core/abstracts.SessionEndpoint.events
+ * @extend module:core/abstracts.SessionEndpoint.events
  */
 SdpEndpoint.events = SessionEndpoint.events;
 
@@ -10814,8 +10742,6 @@ var inherits = require('inherits');
 var kurentoClient = require('kurento-client');
 
 var ChecktypeError = kurentoClient.checkType.ChecktypeError;
-
-var Transaction = kurentoClient.TransactionsManager.Transaction;
 
 var MediaObject = require('./MediaObject');
 
@@ -10916,7 +10842,7 @@ ServerManager.constructorParams = {};
 /**
  * @alias module:core/abstracts.ServerManager.events
  *
- * @extends module:core/abstracts.MediaObject.events
+ * @extend module:core/abstracts.MediaObject.events
  */
 ServerManager.events = MediaObject.events.concat(['ObjectCreated', 'ObjectDestroyed']);
 
@@ -10979,7 +10905,7 @@ SessionEndpoint.constructorParams = {};
 /**
  * @alias module:core/abstracts.SessionEndpoint.events
  *
- * @extends module:core/abstracts.Endpoint.events
+ * @extend module:core/abstracts.Endpoint.events
  */
 SessionEndpoint.events = Endpoint.events.concat(['MediaSessionStarted', 'MediaSessionTerminated']);
 
@@ -11113,7 +11039,7 @@ UriEndpoint.constructorParams = {};
 /**
  * @alias module:core/abstracts.UriEndpoint.events
  *
- * @extends module:core/abstracts.Endpoint.events
+ * @extend module:core/abstracts.Endpoint.events
  */
 UriEndpoint.events = Endpoint.events;
 
