@@ -1447,7 +1447,7 @@ function MediaObjectCreator(host, encodeCreate, encodeRpc, encodeTransaction,
 
 module.exports = MediaObjectCreator;
 
-},{"./TransactionsManager":3,"./checkType":5,"./createPromise":6,"./register":8,"async":"async","extend":22}],3:[function(require,module,exports){
+},{"./TransactionsManager":3,"./checkType":5,"./createPromise":6,"./register":9,"async":"async","extend":22}],3:[function(require,module,exports){
 /*
  * (C) Copyright 2013-2014 Kurento (http://kurento.org/)
  *
@@ -1666,7 +1666,7 @@ TransactionsManager.TransactionNotCommitedException =
   TransactionNotCommitedException;
 TransactionsManager.TransactionRollbackException = TransactionRollbackException;
 
-},{"domain":19,"events":21,"inherits":"inherits","promisecallback":"promisecallback"}],4:[function(require,module,exports){
+},{"domain":20,"events":21,"inherits":"inherits","promisecallback":"promisecallback"}],4:[function(require,module,exports){
 /**
  * Loader for the kurento-client package on the browser
  */
@@ -1993,6 +1993,25 @@ disguiseThenable.unthenable = unthenable
 module.exports = disguiseThenable
 
 },{}],8:[function(require,module,exports){
+if ("toJSON" in Error.prototype) {
+  return;
+}
+
+Object.defineProperty(Error.prototype, "toJSON", {
+  value: function () {
+    var alt = {};
+
+    Object.getOwnPropertyNames(this).forEach(function (key) {
+      alt[key] = this[key];
+    }, this);
+
+    return alt;
+  },
+  configurable: true,
+  writable: true,
+});
+
+},{}],9:[function(require,module,exports){
 var checkType = require('./checkType');
 
 var abstracts = {};
@@ -2113,7 +2132,7 @@ register.classes = classes;
 register.complexTypes = complexTypes;
 register.modules = modules;
 
-},{"./checkType":5}],9:[function(require,module,exports){
+},{"./checkType":5}],10:[function(require,module,exports){
 /*
  * Copyright (c) 2012 Mathieu Turcotte
  * Licensed under the MIT license.
@@ -2164,7 +2183,7 @@ module.exports.call = function(fn, vargs, callback) {
     return new FunctionCall(fn, vargs, callback);
 };
 
-},{"./lib/backoff":10,"./lib/function_call.js":11,"./lib/strategy/exponential":12,"./lib/strategy/fibonacci":13}],10:[function(require,module,exports){
+},{"./lib/backoff":11,"./lib/function_call.js":12,"./lib/strategy/exponential":13,"./lib/strategy/fibonacci":14}],11:[function(require,module,exports){
 /*
  * Copyright (c) 2012 Mathieu Turcotte
  * Licensed under the MIT license.
@@ -2250,7 +2269,7 @@ Backoff.prototype.reset = function() {
 
 module.exports = Backoff;
 
-},{"events":21,"util":151}],11:[function(require,module,exports){
+},{"events":21,"util":151}],12:[function(require,module,exports){
 /*
  * Copyright (c) 2012 Mathieu Turcotte
  * Licensed under the MIT license.
@@ -2479,7 +2498,7 @@ FunctionCall.prototype.handleBackoff_ = function(number, delay, err) {
 
 module.exports = FunctionCall;
 
-},{"./backoff":10,"./strategy/fibonacci":13,"events":21,"util":151}],12:[function(require,module,exports){
+},{"./backoff":11,"./strategy/fibonacci":14,"events":21,"util":151}],13:[function(require,module,exports){
 /*
  * Copyright (c) 2012 Mathieu Turcotte
  * Licensed under the MIT license.
@@ -2515,7 +2534,7 @@ ExponentialBackoffStrategy.prototype.reset_ = function() {
 
 module.exports = ExponentialBackoffStrategy;
 
-},{"./strategy":14,"util":151}],13:[function(require,module,exports){
+},{"./strategy":15,"util":151}],14:[function(require,module,exports){
 /*
  * Copyright (c) 2012 Mathieu Turcotte
  * Licensed under the MIT license.
@@ -2552,7 +2571,7 @@ FibonacciBackoffStrategy.prototype.reset_ = function() {
 
 module.exports = FibonacciBackoffStrategy;
 
-},{"./strategy":14,"util":151}],14:[function(require,module,exports){
+},{"./strategy":15,"util":151}],15:[function(require,module,exports){
 /*
  * Copyright (c) 2012 Mathieu Turcotte
  * Licensed under the MIT license.
@@ -2652,7 +2671,7 @@ BackoffStrategy.prototype.reset_ = function() {
 
 module.exports = BackoffStrategy;
 
-},{"events":21,"util":151}],15:[function(require,module,exports){
+},{"events":21,"util":151}],16:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -2806,9 +2825,9 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],16:[function(require,module,exports){
-
 },{}],17:[function(require,module,exports){
+
+},{}],18:[function(require,module,exports){
 (function (Buffer){
 /*!
  * The buffer module from node.js, for the browser.
@@ -2822,10 +2841,6 @@ function fromByteArray (uint8) {
 
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
-var customInspectSymbol =
-  (typeof Symbol === 'function' && typeof Symbol.for === 'function')
-    ? Symbol.for('nodejs.util.inspect.custom')
-    : null
 
 exports.Buffer = Buffer
 exports.SlowBuffer = SlowBuffer
@@ -2862,9 +2877,7 @@ function typedArraySupport () {
   // Can typed array instances can be augmented?
   try {
     var arr = new Uint8Array(1)
-    var proto = { foo: function () { return 42 } }
-    Object.setPrototypeOf(proto, Uint8Array.prototype)
-    Object.setPrototypeOf(arr, proto)
+    arr.__proto__ = { __proto__: Uint8Array.prototype, foo: function () { return 42 } }
     return arr.foo() === 42
   } catch (e) {
     return false
@@ -2893,7 +2906,7 @@ function createBuffer (length) {
   }
   // Return an augmented `Uint8Array` instance
   var buf = new Uint8Array(length)
-  Object.setPrototypeOf(buf, Buffer.prototype)
+  buf.__proto__ = Buffer.prototype
   return buf
 }
 
@@ -2943,7 +2956,7 @@ function from (value, encodingOrOffset, length) {
   }
 
   if (value == null) {
-    throw new TypeError(
+    throw TypeError(
       'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
       'or Array-like Object. Received type ' + (typeof value)
     )
@@ -2995,8 +3008,8 @@ Buffer.from = function (value, encodingOrOffset, length) {
 
 // Note: Change prototype *after* Buffer.from is defined to workaround Chrome bug:
 // https://github.com/feross/buffer/pull/148
-Object.setPrototypeOf(Buffer.prototype, Uint8Array.prototype)
-Object.setPrototypeOf(Buffer, Uint8Array)
+Buffer.prototype.__proto__ = Uint8Array.prototype
+Buffer.__proto__ = Uint8Array
 
 function assertSize (size) {
   if (typeof size !== 'number') {
@@ -3100,8 +3113,7 @@ function fromArrayBuffer (array, byteOffset, length) {
   }
 
   // Return an augmented `Uint8Array` instance
-  Object.setPrototypeOf(buf, Buffer.prototype)
-
+  buf.__proto__ = Buffer.prototype
   return buf
 }
 
@@ -3423,9 +3435,6 @@ Buffer.prototype.inspect = function inspect () {
   if (this.length > max) str += ' ... '
   return '<Buffer ' + str + '>'
 }
-if (customInspectSymbol) {
-  Buffer.prototype[customInspectSymbol] = Buffer.prototype.inspect
-}
 
 Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
   if (isInstance(target, Uint8Array)) {
@@ -3551,7 +3560,7 @@ function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
         return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
       }
     }
-    return arrayIndexOf(buffer, [val], byteOffset, encoding, dir)
+    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
   }
 
   throw new TypeError('val must be string, number or Buffer')
@@ -3880,7 +3889,7 @@ function hexSlice (buf, start, end) {
 
   var out = ''
   for (var i = start; i < end; ++i) {
-    out += hexSliceLookupTable[buf[i]]
+    out += toHex(buf[i])
   }
   return out
 }
@@ -3917,8 +3926,7 @@ Buffer.prototype.slice = function slice (start, end) {
 
   var newBuf = this.subarray(start, end)
   // Return an augmented `Uint8Array` instance
-  Object.setPrototypeOf(newBuf, Buffer.prototype)
-
+  newBuf.__proto__ = Buffer.prototype
   return newBuf
 }
 
@@ -4407,8 +4415,6 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
     }
   } else if (typeof val === 'number') {
     val = val & 255
-  } else if (typeof val === 'boolean') {
-    val = Number(val)
   }
 
   // Invalid ranges are not set to a default, so can range check early.
@@ -4464,6 +4470,11 @@ function base64clean (str) {
     str = str + '='
   }
   return str
+}
+
+function toHex (n) {
+  if (n < 16) return '0' + n.toString(16)
+  return n.toString(16)
 }
 
 function utf8ToBytes (string, units) {
@@ -4596,22 +4607,8 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-// Create lookup table for `toString('hex')`
-// See: https://github.com/feross/buffer/issues/219
-var hexSliceLookupTable = (function () {
-  var alphabet = '0123456789abcdef'
-  var table = new Array(256)
-  for (var i = 0; i < 16; ++i) {
-    var i16 = i * 16
-    for (var j = 0; j < 16; ++j) {
-      table[i16 + j] = alphabet[i] + alphabet[j]
-    }
-  }
-  return table
-})()
-
 }).call(this,require("buffer").Buffer)
-},{"base64-js":15,"buffer":17,"ieee754":23}],18:[function(require,module,exports){
+},{"base64-js":16,"buffer":18,"ieee754":23}],19:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -4722,7 +4719,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":24}],19:[function(require,module,exports){
+},{"../../is-buffer/index.js":24}],20:[function(require,module,exports){
 // This file should be ES5 compatible
 /* eslint prefer-spread:0, no-var:0, prefer-reflect:0, no-magic-numbers:0 */
 'use strict'
@@ -4794,21 +4791,7 @@ module.exports = (function () {
 	return domain
 }).call(this)
 
-},{"events":21}],20:[function(require,module,exports){
-Object.defineProperty(Error.prototype, 'toJSON', {
-    value: function () {
-        var alt = {};
-
-        Object.getOwnPropertyNames(this).forEach(function (key) {
-            alt[key] = this[key];
-        }, this);
-
-        return alt;
-    },
-    configurable: true
-});
-
-},{}],21:[function(require,module,exports){
+},{"events":21}],21:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -5578,7 +5561,7 @@ function isBuffer (o) {
     || /\[object (.+Array|Array.+)\]/.test(Object.prototype.toString.call(o));
 }
 
-},{"buffer":17}],27:[function(require,module,exports){
+},{"buffer":18}],27:[function(require,module,exports){
 /* Autogenerated with Kurento Idl */
 
 /*
@@ -6152,39 +6135,95 @@ function noop(error, result) {
  *  </p>
  *  <ul>
  *    <li>
- *      ConnectionStateChangedEvent: This event is raised when the connection
- *      between two peers changes. It can have two values:
+ *      <strong>ConnectionStateChangedEvent</strong>: This event is raised when 
+ *      the
+ *      connection between two peers changes. It can have two values:
  *      <ul>
  *        <li>CONNECTED</li>
  *        <li>DISCONNECTED</li>
  *      </ul>
  *    </li>
  *    <li>
- *      MediaStateChangedEvent: Based on RTCP packet flow, this event provides 
- *      more
- *      reliable information about the state of media flow. Since RTCP packets 
- *      are
- *      not flowing at a constant rate (minimizing a browser with an
- *      RTCPeerConnection might affect this interval, for instance), there is a
- *      guard period of about 5s. This traduces in a period where there might be
- *      media flowing, but the event hasn't been fired yet. Nevertheless, this 
- *      is
- *      the most reliable and useful way of knowing what the state of media 
- *      exchange
- *      is. Possible values are:
+ *      <strong>MediaStateChangedEvent</strong>: This event provides information
+ *      about the state of the underlying RTP session.
+ *      <p>
+ *        The standard definition of RTP (<a
+ *          href='https://tools.ietf.org/html/rfc3550'
+ *          target='_blank'
+ *          >RFC 3550</a
+ *        >) describes a session as active whenever there is a maintained flow 
+ *        of
+ *        RTCP control packets, regardless of whether there is actual media 
+ *        flowing
+ *        through RTP data packets or not. The reasoning behind this is that, at
+ *        given moment, a participant of an RTP session might temporarily stop
+ *        sending RTP data packets, but this wouldn't necessarily mean that the 
+ *        RTP
+ *        session as a whole is finished; it maybe just means that the 
+ *        participant
+ *        has some temporary issues but it will soon resume sending data. For 
+ *        this
+ *        reason, that an RTP session has really finished is something that is
+ *        considered only by the prolonged absence of RTCP control packets 
+ *        between
+ *        participants.
+ *      </p>
+ *      <p>
+ *        Since RTCP packets do not flow at a constant rate (for instance,
+ *        minimizing a browser window with a WebRTC's
+ *        <code>RTCPeerConnection</code> object might affect the sending 
+ *        interval),
+ *        it is not possible to immediately detect their absence and assume that
+ *        RTP session has finished. Instead, there is a guard period of
+ *        approximately <strong>5 seconds</strong> of missing RTCP packets 
+ *        before
+ *        considering that the underlying RTP session is effectively finished, 
+ *        thus
+ *        triggering a <code>MediaStateChangedEvent = DISCONNECTED</code> event.
+ *      </p>
+ *      <p>
+ *        In other words, there is always a period during which there might be 
+ *        no
+ *        media flowing, but this event hasn't been fired yet. Nevertheless, 
+ *        this is
+ *        the most reliable and useful way of knowing what is the long-term, 
+ *        steady
+ *        state of RTP media exchange.
+ *      </p>
+ *      <p>
+ *        The <code>ConnectionStateChangedEvent</code> comes in contrast with 
+ *        more
+ *        instantaneous events such as MediaElement's
+ *        {@link module:core/abstracts.BaseRtpEndpoint#MediaFlowInStateChange} 
+ *        and
+ *        {@link module:core/abstracts.BaseRtpEndpoint#MediaFlowOutStateChange},
+ *        immediately after the RTP data packets stop flowing between RTP 
+ *        session
+ *        participants. This makes the <em>MediaFlow</em> events a good way to
+ *        know if participants are suffering from short-term intermittent
+ *        connectivity issues, but they are not enough to know if the 
+ *        connectivity
+ *        issues are just spurious network hiccups or are part of a more 
+ *        long-term
+ *        disconnection problem.
+ *      </p>
+ *      <p>
+ *        Possible values are:
+ *      </p>
  *      <ul>
  *        <li>CONNECTED: There is an RTCP packet flow between peers.</li>
  *        <li>
- *          DISCONNECTED: No RTCP packets have been received, or at least 5s 
- *          have
- *          passed since the last packet arrived.
+ *          DISCONNECTED: Either no RTCP packets have been received yet, or the
+ *          remote peer has ended the RTP session with a <code>BYE</code> 
+ *          message,
+ *          or at least 5 seconds have elapsed since the last RTCP packet was
+ *          received.
  *        </li>
  *      </ul>
  *    </li>
  *  </ul>
  *  <p>
- *    Part of the bandwidth control of the video component of the media session 
- *    is
+ *    Part of the bandwidth control for the video component of the media session
  *    done here:
  *  </p>
  *  <ul>
@@ -16615,11 +16654,10 @@ function noop(error, result) {
  * @classdesc
  *  Provides the functionality to store contents.
  *  <p>
- *    The recorder can store in local files or in a network resource. It 
- *    receives a
- *    media stream from another {@link module:core/abstracts.MediaElement 
- *    MediaElement} (i.e. the source), and
- *    stores it in the designated location.
+ *    The Recorder can store media in local files or in a network resource. It
+ *    receives a media stream from another {@link 
+ *    module:core/abstracts.MediaElement MediaElement} (i.e. the
+ *    source), and stores it in the designated location.
  *  </p>
  *  <p>
  *    The following information has to be provided in order to create a
@@ -16627,64 +16665,73 @@ function noop(error, result) {
  *  </p>
  *  <ul>
  *    <li>
- *      URI of the resource where media will be stored. Following schemas are
- *      supported:
+ *      <strong>Destination URI</strong>, where media will be stored. These 
+ *      formats
+ *      are supported:
  *      <ul>
  *        <li>
- *          Files: mounted in the local file system.
+ *          File: A file path that exists in the local file system.
  *          <ul>
  *            <li><code>file:///path/to/file</code></li>
  *          </ul>
  *        </li>
  *        <li>
- *          HTTP: Requires the server to support method PUT
+ *          HTTP: Method PUT used against a remote server.
  *          <ul>
  *            <li><code>http(s)://{server-ip}/path/to/file</code></li>
  *            <li>
- *              <code>http(s)://username:password@{server-ip}/path/to/file</code>
+ *              <code>
+ *                http(s)://{username}:{password}@{server-ip}/path/to/file
+ *              </code>
  *            </li>
  *          </ul>
  *        </li>
  *      </ul>
  *    </li>
  *    <li>
- *      Relative URIs (with no schema) are supported. They are completed 
- *      prepending
- *      a default URI defined by property <i>defaultPath</i>. This property is
- *      defined in the configuration file
+ *      Relative URIs (with no schema) are supported. They are completed by
+ *      prepending a default URI defined by property <i>defaultPath</i>. This
+ *      property is defined in the configuration file
  *      <i>/etc/kurento/modules/kurento/UriEndpoint.conf.ini</i>, and the 
  *      default
  *      value is <code>file:///var/lib/kurento/</code>
  *    </li>
  *    <li>
- *      The media profile ({@link 
- *      module:elements.RecorderEndpoint#MediaProfileSpecType}) used to store 
- *      the file.
- *      This will determine the encoding. See below for more details about media
- *      profile.
+ *      The <stron>Media Profile</stron> ({@link 
+ *      module:elements.RecorderEndpoint#MediaProfileSpecType}) used for
+ *      storage. This will determine the video and audio encoding. See below for
+ *      more details about Media Profile.
  *    </li>
  *    <li>
  *      Optionally, the user can select if the endpoint will stop processing 
  *      once
- *      the EndOfStream event is detected.
+ *      the <strong>EndOfStream</strong> event is detected.
  *    </li>
  *  </ul>
  *  <p>
- *    RecorderEndpoint requires access to the resource where stream is going to 
- *    be
- *    recorded. If it's a local file (<code>file://</code>), the system user 
- *    running
- *    the media server daemon (kurento by default), needs to have write 
- *    permissions
- *    for that URI. If it's an HTTP server, it must be accessible from the 
- *    machine
- *    where media server is running, and also have the correct access rights.
- *    Otherwise, the media server won't be able to store any information, and an
+ *    <strong>
+ *      RecorderEndpoint requires access to the resource where stream is going 
+ *      to be
+ *      recorded
+ *    </strong>
+ *    . Otherwise, the media server won't be able to store any information, and 
+ *    an
  *    {@link ErrorEvent} will be fired. Please note that if you haven't 
  *    subscribed to
  *    that type of event, you can be left wondering why your media is not being
  *    saved, while the error message was ignored.
  *  </p>
+ *  <ul>
+ *    <li>
+ *      To write local files (if you use <code>file://</code>), the user running
+ *      media server (by default, user <code>kurento</code>) needs to have write
+ *      permissions for the requested path.
+ *    </li>
+ *    <li>
+ *      To save into an HTTP server, the server must be accessible through the
+ *      network, and also have the correct access rights.
+ *    </li>
+ *  </ul>
  *  <p>
  *    The media profile is quite an important parameter, as it will determine
  *    whether the server needs to perform on-the-fly transcoding of the media. 
@@ -16724,13 +16771,20 @@ function noop(error, result) {
  *    a very important decision.
  *  </p>
  *  <p>
- *    Recording will start as soon as the user invokes the record method. The
- *    recorder will then store, in the location indicated, the media that the 
- *    source
- *    is sending to the endpoint's sink. If no media is being received, or no
- *    endpoint has been connected, then the destination will be empty. The 
- *    recorder
- *    starts storing information into the file as soon as it gets it.
+ *    Recording will start as soon as the user invokes the
+ *    <code>record</code> method. The recorder will then store, in the location
+ *    indicated, the media that the source is sending to the endpoint. If no 
+ *    media
+ *    is being received, or no endpoint has been connected, then the destination
+ *    will be empty. The recorder starts storing information into the file as 
+ *    soon
+ *    as it gets it.
+ *  </p>
+ *  <p>
+ *    Stopping the recording process is done through the
+ *    <code>stopAndWait</code> method, which will return only after all the
+ *    information was stored correctly. If the file is empty, this means that no
+ *    media arrived at the recorder.
  *  </p>
  *  <p>
  *    When another endpoint is connected to the recorder, by default both AUDIO 
@@ -16754,22 +16808,35 @@ function noop(error, result) {
  *    recording is stopped.
  *  </p>
  *  <p>
- *    It is recommended to start recording only after media arrives, either to 
- *    the
- *    endpoint that is the source of the media connected to the recorder, to the
- *    recorder itself, or both. Users may use the MediaFlowIn and MediaFlowOut
- *    events, and synchronize the recording with the moment media comes in. In 
- *    any
- *    case, nothing will be stored in the file until the first media packets 
- *    arrive.
+ *    <strong>
+ *      It is recommended to start recording only after media arrives
+ *    </strong>
+ *    . For this, you may use the <code>MediaFlowInStateChange</code> and
+ *    <code>MediaFlowOutStateChange</code>
+ *    events of your endpoints, and synchronize the recording with the moment 
+ *    media
+ *    comes into the Recorder. For example:
  *  </p>
- *  <p>
- *    Stopping the recording process is done through the stopAndWait method, 
- *    which
- *    will return only after all the information was stored correctly. If the 
- *    file
- *    is empty, this means that no media arrived at the recorder.
- *  </p>
+ *  <ol>
+ *    <li>
+ *      When the remote video arrives to KMS, your WebRtcEndpoint will start
+ *      generating packets into the Kurento Pipeline, and it will trigger a
+ *      <code>MediaFlowOutStateChange</code> event.
+ *    </li>
+ *    <li>
+ *      When video packets arrive from the WebRtcEndpoint to the 
+ *      RecorderEndpoint,
+ *      the RecorderEndpoint will raise a <code>MediaFlowInStateChange</code> 
+ *      event.
+ *    </li>
+ *    <li>
+ *      You should only start recording when RecorderEndpoint has notified a
+ *      <code>MediaFlowInStateChange</code> for ALL streams (so, if you record
+ *      AUDIO+VIDEO, your application must receive a
+ *      <code>MediaFlowInStateChange</code> event for audio, and another
+ *      <code>MediaFlowInStateChange</code> event for video).
+ *    </li>
+ *  </ol>
  *
  * @extends module:core/abstracts.UriEndpoint
  *
@@ -17502,25 +17569,23 @@ inherits(WebRtcEndpoint, BaseRtpEndpoint);
 //
 
 /**
- * External (public) IP address of the media server.
+ * External IP address of the media server.
  * <p>
- *   If you know what will be the external or public IP address of the media 
- *   server
- *   (e.g. because your deployment has an static IP), you can specify it here.
- *   Doing so has the advantage of not needing to configure STUN/TURN for the 
- *   media
- *   server.
+ *   This setting is normally NOT needed. Only use it if you know what you're
+ *   doing, and understand 100% WHY you want it. For the majority of cases, you
+ *   should prefer configuring STUN or TURN servers over using this setting.
  * </p>
  * <p>
- *   STUN/TURN are needed only when the media server sits behind a NAT and needs
- *   find out its own external IP address. However, if you set a static external
- *   address with this parameter, then there is no need for the STUN/TURN
- *   auto-discovery.
+ *   This setting implements a hack that will mangle all local ICE candidates so
+ *   that their candidate address is replaced with the provided external 
+ *   address,
+ *   even for candidates of type 'host'. In doing so, this KMS will not need a
+ *   STUN or TURN server, but remote peers will still be able to contact it.
  * </p>
  * <p>
- *   The effect of this parameter is that ALL local ICE candidates that are
- *   gathered (for WebRTC) will contain the provided external IP address instead
- *   the local one.
+ *   You can try using this setting if KMS is deployed on a publicly accessible
+ *   server, without NAT, and with a static public IP address. But if it doesn't
+ *   work for you, just go back to using the STUN or TURN settings above.
  * </p>
  * <p>
  *   <code>externalAddress</code> is an IPv4 or IPv6 address.
@@ -17561,25 +17626,23 @@ WebRtcEndpoint.prototype.getExternalAddress = function(callback){
  */
 
 /**
- * External (public) IP address of the media server.
+ * External IP address of the media server.
  * <p>
- *   If you know what will be the external or public IP address of the media 
- *   server
- *   (e.g. because your deployment has an static IP), you can specify it here.
- *   Doing so has the advantage of not needing to configure STUN/TURN for the 
- *   media
- *   server.
+ *   This setting is normally NOT needed. Only use it if you know what you're
+ *   doing, and understand 100% WHY you want it. For the majority of cases, you
+ *   should prefer configuring STUN or TURN servers over using this setting.
  * </p>
  * <p>
- *   STUN/TURN are needed only when the media server sits behind a NAT and needs
- *   find out its own external IP address. However, if you set a static external
- *   address with this parameter, then there is no need for the STUN/TURN
- *   auto-discovery.
+ *   This setting implements a hack that will mangle all local ICE candidates so
+ *   that their candidate address is replaced with the provided external 
+ *   address,
+ *   even for candidates of type 'host'. In doing so, this KMS will not need a
+ *   STUN or TURN server, but remote peers will still be able to contact it.
  * </p>
  * <p>
- *   The effect of this parameter is that ALL local ICE candidates that are
- *   gathered (for WebRTC) will contain the provided external IP address instead
- *   the local one.
+ *   You can try using this setting if KMS is deployed on a publicly accessible
+ *   server, without NAT, and with a static public IP address. But if it doesn't
+ *   work for you, just go back to using the STUN or TURN settings above.
  * </p>
  * <p>
  *   <code>externalAddress</code> is an IPv4 or IPv6 address.
@@ -21093,7 +21156,7 @@ function RpcBuilder(packer, options, transport, onRequest) {
   var max_retries = options.max_retries || 0;
 
   function transportMessage(event) {
-    self.decode(event.data || event);
+    self.decode(event.data || event.toString());
   };
 
   this.getTransport = function () {
@@ -22740,7 +22803,7 @@ var objectKeys = Object.keys || function (obj) {
 module.exports = Duplex;
 
 /*<replacement>*/
-var util = require('core-util-is');
+var util = Object.create(require('core-util-is'));
 util.inherits = require('inherits');
 /*</replacement>*/
 
@@ -22826,7 +22889,7 @@ Duplex.prototype._destroy = function (err, cb) {
 
   pna.nextTick(cb, err);
 };
-},{"./_stream_readable":130,"./_stream_writable":132,"core-util-is":18,"inherits":"inherits","process-nextick-args":121}],129:[function(require,module,exports){
+},{"./_stream_readable":130,"./_stream_writable":132,"core-util-is":19,"inherits":"inherits","process-nextick-args":121}],129:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -22859,7 +22922,7 @@ module.exports = PassThrough;
 var Transform = require('./_stream_transform');
 
 /*<replacement>*/
-var util = require('core-util-is');
+var util = Object.create(require('core-util-is'));
 util.inherits = require('inherits');
 /*</replacement>*/
 
@@ -22874,7 +22937,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":131,"core-util-is":18,"inherits":"inherits"}],130:[function(require,module,exports){
+},{"./_stream_transform":131,"core-util-is":19,"inherits":"inherits"}],130:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -22942,7 +23005,7 @@ function _isUint8Array(obj) {
 /*</replacement>*/
 
 /*<replacement>*/
-var util = require('core-util-is');
+var util = Object.create(require('core-util-is'));
 util.inherits = require('inherits');
 /*</replacement>*/
 
@@ -23896,7 +23959,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":128,"./internal/streams/BufferList":133,"./internal/streams/destroy":134,"./internal/streams/stream":135,"_process":122,"core-util-is":18,"events":21,"inherits":"inherits","isarray":25,"process-nextick-args":121,"safe-buffer":136,"string_decoder/":137,"util":16}],131:[function(require,module,exports){
+},{"./_stream_duplex":128,"./internal/streams/BufferList":133,"./internal/streams/destroy":134,"./internal/streams/stream":135,"_process":122,"core-util-is":19,"events":21,"inherits":"inherits","isarray":25,"process-nextick-args":121,"safe-buffer":136,"string_decoder/":137,"util":17}],131:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -23967,7 +24030,7 @@ module.exports = Transform;
 var Duplex = require('./_stream_duplex');
 
 /*<replacement>*/
-var util = require('core-util-is');
+var util = Object.create(require('core-util-is'));
 util.inherits = require('inherits');
 /*</replacement>*/
 
@@ -24111,7 +24174,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":128,"core-util-is":18,"inherits":"inherits"}],132:[function(require,module,exports){
+},{"./_stream_duplex":128,"core-util-is":19,"inherits":"inherits"}],132:[function(require,module,exports){
 (function (process,global,setImmediate){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -24179,7 +24242,7 @@ var Duplex;
 Writable.WritableState = WritableState;
 
 /*<replacement>*/
-var util = require('core-util-is');
+var util = Object.create(require('core-util-is'));
 util.inherits = require('inherits');
 /*</replacement>*/
 
@@ -24801,7 +24864,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("timers").setImmediate)
-},{"./_stream_duplex":128,"./internal/streams/destroy":134,"./internal/streams/stream":135,"_process":122,"core-util-is":18,"inherits":"inherits","process-nextick-args":121,"safe-buffer":136,"timers":146,"util-deprecate":149}],133:[function(require,module,exports){
+},{"./_stream_duplex":128,"./internal/streams/destroy":134,"./internal/streams/stream":135,"_process":122,"core-util-is":19,"inherits":"inherits","process-nextick-args":121,"safe-buffer":136,"timers":146,"util-deprecate":149}],133:[function(require,module,exports){
 'use strict';
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -24881,7 +24944,7 @@ if (util && util.inspect && util.inspect.custom) {
     return this.constructor.name + ' ' + obj;
   };
 }
-},{"safe-buffer":136,"util":16}],134:[function(require,module,exports){
+},{"safe-buffer":136,"util":17}],134:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -25023,7 +25086,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":17}],137:[function(require,module,exports){
+},{"buffer":18}],137:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -25466,7 +25529,7 @@ function (createConnection) {
 
 }
 
-},{"backoff":9,"events":21}],143:[function(require,module,exports){
+},{"backoff":10,"events":21}],143:[function(require,module,exports){
 var websocket = require('websocket-stream');
 var inject = require('reconnect-core');
 
@@ -34225,7 +34288,7 @@ if (typeof Object.create === 'function') {
  */
 
 Object.defineProperty(exports, 'name',    {value: 'core'});
-Object.defineProperty(exports, 'version', {value: '6.13.1-dev'});
+Object.defineProperty(exports, 'version', {value: '6.14.1-dev'});
 
 
 var HubPort = require('./HubPort');
@@ -34269,7 +34332,7 @@ exports.complexTypes = require('./complexTypes');
  */
 
 Object.defineProperty(exports, 'name',    {value: 'elements'});
-Object.defineProperty(exports, 'version', {value: '6.13.1-dev'});
+Object.defineProperty(exports, 'version', {value: '6.14.1-dev'});
 
 
 var AlphaBlending = require('./AlphaBlending');
@@ -34327,7 +34390,7 @@ exports.complexTypes = require('./complexTypes');
  */
 
 Object.defineProperty(exports, 'name',    {value: 'filters'});
-Object.defineProperty(exports, 'version', {value: '6.13.1-dev'});
+Object.defineProperty(exports, 'version', {value: '6.14.1-dev'});
 
 
 var FaceOverlayFilter = require('./FaceOverlayFilter');
@@ -34370,7 +34433,7 @@ exports.abstracts = require('./abstracts');
  * @license ALv2
  */
 
-require('error-tojson');
+require('./errorToJson');
 
 var checkType = require('./checkType');
 
@@ -34406,7 +34469,7 @@ register('kurento-client-core')
 register('kurento-client-elements')
 register('kurento-client-filters')
 
-},{"./KurentoClient":1,"./MediaObjectCreator":2,"./TransactionsManager":3,"./checkType":5,"./disguise":7,"./register":8,"error-tojson":20}],"promisecallback":[function(require,module,exports){
+},{"./KurentoClient":1,"./MediaObjectCreator":2,"./TransactionsManager":3,"./checkType":5,"./disguise":7,"./errorToJson":8,"./register":9}],"promisecallback":[function(require,module,exports){
 /*
  * (C) Copyright 2014-2015 Kurento (http://kurento.org/)
  *
